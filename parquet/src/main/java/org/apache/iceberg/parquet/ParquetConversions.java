@@ -29,6 +29,8 @@ import org.apache.iceberg.types.Type;
 import org.apache.iceberg.util.UUIDUtil;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.LogicalTypeAnnotation.DecimalLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.TimeLogicalTypeAnnotation;
+import org.apache.parquet.schema.LogicalTypeAnnotation.TimestampLogicalTypeAnnotation;
 import org.apache.parquet.schema.PrimitiveType;
 
 class ParquetConversions {
@@ -40,12 +42,23 @@ class ParquetConversions {
       case BOOLEAN:
       case INTEGER:
       case DATE:
-      case TIME:
-      case TIMESTAMP:
-      case TIMESTAMP_NANO:
       case LONG:
       case FLOAT:
       case DOUBLE:
+        return (T) value;
+      case TIME:
+        if (parquetType.getLogicalTypeAnnotation() instanceof TimeLogicalTypeAnnotation time
+            && time.getUnit() == LogicalTypeAnnotation.TimeUnit.MILLIS) {
+          return (T) (Long) (((Number) value).longValue() * 1000L);
+        }
+        return (T) value;
+      case TIMESTAMP:
+        if (parquetType.getLogicalTypeAnnotation() instanceof TimestampLogicalTypeAnnotation ts
+            && ts.getUnit() == LogicalTypeAnnotation.TimeUnit.MILLIS) {
+          return (T) (Long) (((Long) value) * 1000L);
+        }
+        return (T) value;
+      case TIMESTAMP_NANO:
         return (T) value;
       case STRING:
         return (T) ((Binary) value).toStringUsingUTF8();
